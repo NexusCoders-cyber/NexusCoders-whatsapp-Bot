@@ -16,4 +16,11 @@ const botName = proc.env.botName || 'Nexus-MD';
 const prefix = proc.env.prefix || '!'; //configure this if you set '' blank bot will have no prefix.
 const mode = 'public';
 
-module.export.config
+module.exports = {
+  sessionId,
+  mongodbUrl,
+  adminIds,
+  botName,
+  prefix,
+  mode,
+};
