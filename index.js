@@ -1,6 +1,6 @@
 require('dotenv').config();
 const { Client, RemoteAuth } = require('whatsapp-web.js');
-const config = require('./src/config');
+const config = require('./config');
 const logger = require('./src/utils/logger');
 const messageHandler = require('./src/handlers/messageHandler');
 
