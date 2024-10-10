@@ -10,6 +10,7 @@ const client = new Client({
     authStrategy: new RemoteAuth({
         store: {},
         clientId: sessionId,
+        backupSyncIntervalMs: 300000
     }),
     puppeteer: {
         headless: true,
