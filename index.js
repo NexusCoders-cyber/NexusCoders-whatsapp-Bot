@@ -1,7 +1,7 @@
 require('dotenv').config();
 const { Client, RemoteAuth } = require('whatsapp-web.js');
-const config = require('./config');
-const logger = require('./utils/logger');
+const config = require('./src/config');
+const logger = require('./src/utils/logger');
 const messageHandler = require('./src/handlers/messageHandler');
 
 const sessionId = process.env.SESSION_ID || 'nexuscoders-session';
