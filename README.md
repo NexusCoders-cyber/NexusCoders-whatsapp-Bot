@@ -42,10 +42,9 @@ A powerful and feature-rich WhatsApp bot created by the NexusCoders team.
 
 ## Getting the Session ID
 [![WhatsApp Pairing](https://img.shields.io/badge/WhatsApp-Scan%20QR%20Code-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://nexuscoderssessionid.onrender.com/)
-1. Visit https://nexuscoderssessionid.onrender.com
-2. Follow the instructions to pair your WhatsApp account using the QR code or other provided methods.
-3. Once paired, you will receive a session ID. Copy this ID.
-4. Add the session ID to your `.env` file as shown in the installation step.
+1. Follow the instructions to pair your WhatsApp account using the QR code or other provided methods.
+2. Once paired, you will receive a session ID. Copy this ID.
+3. Add the session ID to your `.env` file as shown in the installation step.
 
 ## Deployment on Render
 
