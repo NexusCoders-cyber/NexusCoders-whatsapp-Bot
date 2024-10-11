@@ -7,6 +7,7 @@ const http = require('http');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/';
 const PORT = process.env.PORT || 3000;
+const SESSION_ID = process.env.SESSION_ID || 'default_session_id';
 
 async function initializeMongoStore() {
     await mongoose.connect(MONGODB_URI, {
@@ -20,7 +21,7 @@ async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
     const sock = makeWASocket({
         auth: state,
-        printQRInTerminal: true
+        printQRInTerminal: false
     });
 
     sock.ev.on('connection.update', (update) => {
