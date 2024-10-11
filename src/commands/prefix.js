@@ -6,9 +6,9 @@ module.exports = {
   description: '',
   async execute(global, client, message, args) {
     try {
-      const myPrefix = 'my prefix is: \nonline: \n⟩ type ${prefix}help to see my commands.\n⟩ Nexus-MD: thank you for choosing us.';
+      const myPrefix = 'my prefix is: ${prefix}\nonline: \n⟩ type ${prefix}help to see my commands.\n⟩ Nexus-MD: thank you for choosing us.';
 
-      if (args[0] === 'prefix') {
+      if (event.body && event.body.toLowerCase() === "prefix") {
         await message.reply(myPrefix);
       },
 
@@ -16,6 +16,6 @@ module.exports = {
     } catch (error) {
       logger.info('error oops');
       return message.reply('error, my bad');
-    },
+    }
   },
 };
