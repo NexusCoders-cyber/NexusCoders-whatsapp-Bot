@@ -1,9 +1,19 @@
-const config = require('../config');
-const commandHandler = require('./commandHandler');
+const { handleCommand } = require('./commandHandler');
+const rateLimiter = require('./rateLimiter');
 
-module.exports = async (sock, msg) => {
-    const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
-    if (text.startsWith(config.prefix)) {
-        await commandHandler(sock, msg);
+async function messageHandler(sock, msg) {
+    const content = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
+    if (!content.startsWith('!')) return;
+
+    const [command, ...args] = content.slice(1).trim().split(/\s+/);
+    const senderId = msg.key.remoteJid;
+
+    if (rateLimiter.isRateLimited(senderId)) {
+        await sock.sendMessage(senderId, { text: 'You are sending commands too quickly. Please wait a moment and try again.' });
+        return;
     }
-};
+
+    await handleCommand(sock, msg, command.toLowerCase(), args);
+}
+
+module.exports = messageHandler;
