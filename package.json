@@ -1,23 +1,27 @@
 {
-    "name": "nexuscoders-whatsapp-bot",
-    "version": "1.0.0",
-    "description": "A feature-rich WhatsApp bot created by NexusCoders team",
-    "main": "index.js",
-    "scripts": {
-      "start": "node index.js",
-      "test": "jest"
-    },
-    "author": "NexusCoders Team",
-    "license": "MIT",
-    "dependencies": {
-      "axios": "^0.21.1",
-      "dotenv": "^10.0.0",
-      "moment-timezone": "^0.5.33",
-      "sqlite3": "^5.0.2",
-      "whatsapp-web.js": "^1.16.6",
-      "winston": "^3.3.3"
-    },
-    "devDependencies": {
-      "jest": "^27.0.6"
-    }
+  "name": "nexuscoders-whatsapp-bot",
+  "version": "1.0.0",
+  "description": "A feature-rich WhatsApp bot created by NexusCoders team",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "jest"
+  },
+  "author": "NexusCoders Team",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "dotenv": "^10.0.0",
+    "moment-timezone": "^0.5.33",
+    "mongoose": "^6.0.12",
+    "whatsapp-web.js": "^1.19.4",
+    "wwebjs-mongo": "^1.1.0",
+    "winston": "^3.3.3"
+  },
+  "devDependencies": {
+    "jest": "^27.0.6"
+  },
+  "engines": {
+    "node": ">=14.0.0"
   }
+}
