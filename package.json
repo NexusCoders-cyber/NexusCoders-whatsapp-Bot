@@ -1,17 +1,19 @@
 {
-  "name": "nexus-whatsapp-bot",
+  "name": "nexuscoders-whatsapp-bot",
   "version": "1.0.0",
-  "description": "A WhatsApp bot using Baileys",
+  "description": "NexusCoders WhatsApp Bot",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "session": "node session.js"
+  },
+  "engines": {
+    "node": ">=14.0.0"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "^4.0.0",
-    "dotenv": "^10.0.0",
-    "mongoose": "^6.0.0",
-    "winston": "^3.3.3"
-  },
-  "author": "Nexus Teams",
-  "license": "ISC"
+    "@whiskeysockets/baileys": "^6.5.0",
+    "dotenv": "^16.3.1",
+    "mongoose": "^7.6.3",
+    "winston": "^3.11.0"
+  }
 }
