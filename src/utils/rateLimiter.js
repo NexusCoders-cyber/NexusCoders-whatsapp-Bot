@@ -1,24 +1,28 @@
-const { getUser, updateUser } = require('../services/database');
-const config = require('../config');
-const moment = require('moment-timezone');
-
-async function checkLimit(userId) {
-    const user = await getUser(userId) || { id: userId, commandCount: 0, lastCommandTime: 0 };
-    const now = moment().tz(config.timeZone).valueOf();
-
-    if (now - user.lastCommandTime < config.rateLimitWindow) {
-        if (user.commandCount >= config.rateLimitMax) {
-            return false;
-        }
-    } else {
-        user.commandCount = 0;
+class RateLimiter {
+    constructor(limit, window) {
+        this.limit = limit;
+        this.window = window;
+        this.clients = new Map();
     }
 
-    user.commandCount++;
-    user.lastCommandTime = now;
+    isRateLimited(clientId) {
+        const now = Date.now();
+        let client = this.clients.get(clientId);
 
-    await updateUser(user.id, user.commandCount, user.lastCommandTime);
-    return true;
+        if (!client) {
+            client = { count: 0, resetTime: now + this.window };
+            this.clients.set(clientId, client);
+        }
+
+        if (now > client.resetTime) {
+            client.count = 0;
+            client.resetTime = now + this.window;
+        }
+
+        client.count++;
+
+        return client.count > this.limit;
+    }
 }
 
-module.exports = { checkLimit };
+module.exports = new RateLimiter(5, 60000);
