@@ -1,5 +1,5 @@
 const logger = require('../logger');
-const prefix = global.('../config.js').prefix;
+const prefix = require('../config.js').prefix;
 
 module.exports = {
   name: 'prefix',
