@@ -7,18 +7,28 @@ const logger = require('./src/utils/logger');
 const messageHandler = require('./src/handlers/messageHandler');
 const http = require('http');
 
-const MONGODB_URI = 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/';
 const sessionId = process.env.SESSION_ID || 'nexuscoders-session';
 
 let store;
 
 async function initializeMongoStore() {
-    await mongoose.connect(MONGODB_URI);
+    await mongoose.connect(MONGODB_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 5000
+    });
     store = new MongoStore({ mongoose: mongoose });
 }
 
 async function initializeClient() {
-    await initializeMongoStore();
+    try {
+        await initializeMongoStore();
+        logger.info('Connected to MongoDB');
+    } catch (err) {
+        logger.error('MongoDB connection error:', err);
+        process.exit(1);
+    }
 
     const client = new Client({
         authStrategy: new RemoteAuth({
@@ -69,12 +79,12 @@ async function main() {
     });
 
     process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
+        console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    });
 
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-});
+    process.on('uncaughtException', (error) => {
+        console.error('Uncaught Exception:', error);
+    });
 
     process.on('SIGINT', async () => {
         logger.info('NexusCoders Bot shutting down...');
