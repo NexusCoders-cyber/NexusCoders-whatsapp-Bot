@@ -5,16 +5,20 @@ const commands = new Map();
 const commandFiles = fs.readdirSync(path.join(__dirname, '../commands')).filter(file => file.endsWith('.js'));
 
 for (const file of commandFiles) {
-    const command = require(path.join(__dirname, '../commands', file));
+    const command = require(`../commands/${file}`);
     commands.set(command.name, command);
 }
 
-async function executeCommand(commandName, message, args) {
-    if (commands.has(commandName)) {
-        await commands.get(commandName).execute(message, args);
-    } else {
-        message.reply('Unknown command. Type !help to see available commands.');
-    }
-}
+module.exports = async (message) => {
+    const args = message.body.slice(1).trim().split(/ +/);
+    const commandName = args.shift().toLowerCase();
 
-module.exports = { executeCommand, commands };
+    if (!commands.has(commandName)) return;
+
+    try {
+        await commands.get(commandName).execute(message, args);
+    } catch (error) {
+        console.error('Error executing command:', error);
+        await message.reply('An error occurred while executing the command.');
+    }
+};
