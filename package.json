@@ -9,6 +9,7 @@
   "author": "NexusCoders Team",
   "license": "MIT",
   "dependencies": {
+    "axios": "^1.6.0",
     "dotenv": "^10.0.0",
     "mongoose": "^6.0.12",
     "whatsapp-web.js": "^1.19.4",
