@@ -1,1 +1,20 @@
- 
+{
+  "name": "nexuscoders-whatsapp-bot",
+  "version": "1.0.0",
+  "description": "NexusCoders WhatsApp Bot",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "session": "node session.js"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.5.0",
+    "dotenv": "^16.3.1",
+    "mongoose": "^7.6.3",
+    "qrcode-terminal": "^0.12.0",
+    "winston": "^3.11.0"
+  }
+}
