@@ -10,6 +10,7 @@ const crypto = require('crypto');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/';
 const sessionId = process.env.SESSION_ID || 'nexuscoders-session';
+const PORT = process.env.PORT || 3000;
 
 let store;
 
@@ -43,7 +44,13 @@ async function initializeClient() {
         }),
         puppeteer: {
             headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-gpu',
+                '--disable-dev-shm-usage'
+            ],
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable'
         }
     });
 
@@ -79,8 +86,8 @@ const server = http.createServer((req, res) => {
 async function main() {
     const client = await initializeClient();
 
-    server.listen(process.env.PORT || 3000, () => {
-        logger.info(`Server running on port ${process.env.PORT || 3000}`);
+    server.listen(PORT, () => {
+        logger.info(`Server running on port ${PORT}`);
     });
 
     process.on('unhandledRejection', (reason, promise) => {
