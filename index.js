@@ -6,11 +6,16 @@ const config = require('./src/config');
 const logger = require('./src/utils/logger');
 const messageHandler = require('./src/handlers/messageHandler');
 const http = require('http');
+const crypto = require('crypto');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/';
 const sessionId = process.env.SESSION_ID || 'nexuscoders-session';
 
 let store;
+
+function hashSessionId(sessionId) {
+    return crypto.createHash('md5').update(sessionId).digest('hex');
+}
 
 async function initializeMongoStore() {
     await mongoose.connect(MONGODB_URI, {
@@ -33,9 +38,8 @@ async function initializeClient() {
     const client = new Client({
         authStrategy: new RemoteAuth({
             store: store,
-            clientId: sessionId,
-            backupSyncIntervalMs: 300000,
-            dataPath: './auth_data' // Shorter path for storing auth data
+            clientId: hashSessionId(sessionId),
+            backupSyncIntervalMs: 300000
         }),
         puppeteer: {
             headless: true,
