@@ -11,6 +11,7 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2
 const PORT = process.env.PORT || 3000;
 const SESSION_DIR = './session';
 const SESSION_FILE = path.join(SESSION_DIR, 'session.json');
+const SESSION_DATA = process.env.SESSION_DATA ? JSON.parse(process.env.SESSION_DATA) : null;
 
 async function initializeMongoStore() {
     await mongoose.connect(MONGODB_URI, {
@@ -36,14 +37,17 @@ async function saveSessionData(data) {
 
 async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
-    const initialSessionData = await getSessionData();
+    
+    if (SESSION_DATA) {
+        state.creds = SESSION_DATA;
+    }
 
     const sock = makeWASocket({
         auth: {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
-        printQRInTerminal: false,
+        printQRInTerminal: !SESSION_DATA,
         defaultQueryTimeoutMs: 60000,
     });
 
