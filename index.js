@@ -1,73 +1,106 @@
 require('dotenv').config();
 const { Client, RemoteAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
+const { MongoStore } = require('wwebjs-mongo');
 const mongoose = require('mongoose');
-const CryptoJS = require('crypto-js');
+const config = require('./src/config');
+const logger = require('./src/utils/logger');
+const messageHandler = require('./src/handlers/messageHandler');
 const http = require('http');
 
-const store = new Store('store');
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/';
+const sessionId = process.env.SESSION_ID || 'nexuscoders-session';
 
-function hashAuthInfo(authInfo) {
-  return CryptoJS.MD5(JSON.stringify(authInfo)).toString();
+let store;
+
+async function initializeMongoStore() {
+    await mongoose.connect(MONGODB_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 5000
+    });
+    store = new MongoStore({ mongoose: mongoose });
 }
-
-const client = new Client({
-  authStrategy: new RemoteAuth({
-    store: store,
-    backupSyncIntervalMs: 300000,
-    dataPath: (authInfo) => {
-      const hashedPath = hashAuthInfo(authInfo);
-      return `./auth/session-${hashedPath}`;
-    },
-  }),
-  puppeteer: {
-    args: ['--no-sandbox'],
-  }
-});
-
-client.on('qr', qr => {
-  qrcode.generate(qr, { small: true });
-});
-
-client.on('ready', () => {
-  console.log('Client is ready!');
-});
-
-client.on('remote_session_saved', () => {
-  console.log('Remote session saved!');
-});
 
 async function initializeClient() {
-  try {
-    await client.initialize();
-  } catch (error) {
-    console.error('Failed to initialize client:', error);
-    process.exit(1);
-  }
-}
+    try {
+        await initializeMongoStore();
+        logger.info('Connected to MongoDB');
+    } catch (err) {
+        logger.error('MongoDB connection error:', err);
+        process.exit(1);
+    }
 
-async function main() {
-  try {
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+    const client = new Client({
+        authStrategy: new RemoteAuth({
+            store: store,
+            clientId: sessionId,
+            backupSyncIntervalMs: 300000,
+            dataPath: './auth_data' // Shorter path for storing auth data
+        }),
+        puppeteer: {
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
+        }
     });
-    console.log('Connected to MongoDB');
 
-    await initializeClient();
-  } catch (error) {
-    console.error('Error:', error);
-    process.exit(1);
-  }
+    client.on('ready', () => {
+        logger.info('NexusCoders Bot is ready');
+    });
+
+    client.on('message', messageHandler);
+
+    client.on('authenticated', () => {
+        logger.info('AUTHENTICATED');
+    });
+
+    client.on('auth_failure', msg => {
+        logger.error('AUTHENTICATION FAILURE', msg);
+    });
+
+    try {
+        await client.initialize();
+    } catch (error) {
+        logger.error('Failed to initialize client:', error);
+        process.exit(1);
+    }
+
+    return client;
 }
 
 const server = http.createServer((req, res) => {
-  res.writeHead(200);
-  res.end('WhatsApp bot is running!');
+    res.writeHead(200);
+    res.end('WhatsApp bot is running!');
 });
 
-server.listen(process.env.PORT || 3000, () => {
-  console.log(`Server running on port ${process.env.PORT || 3000}`);
-});
+async function main() {
+    const client = await initializeClient();
 
-main();
+    server.listen(process.env.PORT || 3000, () => {
+        logger.info(`Server running on port ${process.env.PORT || 3000}`);
+    });
+
+    process.on('unhandledRejection', (reason, promise) => {
+        console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    });
+
+    process.on('uncaughtException', (error) => {
+        console.error('Uncaught Exception:', error);
+    });
+
+    process.on('SIGINT', async () => {
+        logger.info('NexusCoders Bot shutting down...');
+        try {
+            await client.destroy();
+            await mongoose.disconnect();
+            server.close();
+        } catch (error) {
+            logger.error('Error during shutdown:', error);
+        }
+        process.exit(0);
+    });
+}
+
+main().catch(error => {
+    logger.error('Error in main function:', error);
+    process.exit(1);
+});
