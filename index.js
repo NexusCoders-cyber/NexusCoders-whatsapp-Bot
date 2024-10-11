@@ -11,7 +11,7 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2
 const PORT = process.env.PORT || 3000;
 const SESSION_DIR = './session';
 const SESSION_FILE = path.join(SESSION_DIR, 'session.json');
-const SESSION_DATA = process.env.SESSION_DATA ? JSON.parse(process.env.SESSION_DATA) : null;
+const SESSION_DATA = process.env.SESSION_DATA ? JSON.parse(Buffer.from(process.env.SESSION_DATA, 'base64').toString()) : null;
 
 async function initializeMongoStore() {
     await mongoose.connect(MONGODB_URI, {
