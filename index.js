@@ -1,22 +1,18 @@
 require('dotenv').config();
-const { Client, RemoteAuth } = require('whatsapp-web.js');
+const { default: makeWASocket, DisconnectReason, useMultiFileAuthState } = require('@adiwajshing/baileys');
 const { MongoStore } = require('wwebjs-mongo');
 const mongoose = require('mongoose');
 const config = require('./src/config');
 const logger = require('./src/utils/logger');
 const messageHandler = require('./src/handlers/messageHandler');
 const http = require('http');
-const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/';
-const sessionId = process.env.SESSION_ID || 'nexuscoders-session';
 const PORT = process.env.PORT || 3000;
 
 let store;
-
-function hashSessionId(sessionId) {
-    return crypto.createHash('md5').update(sessionId).digest('hex');
-}
 
 async function initializeMongoStore() {
     await mongoose.connect(MONGODB_URI, {
@@ -27,55 +23,39 @@ async function initializeMongoStore() {
     store = new MongoStore({ mongoose: mongoose });
 }
 
-async function initializeClient() {
-    try {
-        await initializeMongoStore();
-        logger.info('Connected to MongoDB');
-    } catch (err) {
-        logger.error('MongoDB connection error:', err);
-        process.exit(1);
-    }
+async function connectToWhatsApp() {
+    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
+    const sock = makeWASocket({
+        auth: state,
+        printQRInTerminal: true
+    });
 
-    const client = new Client({
-        authStrategy: new RemoteAuth({
-            store: store,
-            clientId: hashSessionId(sessionId),
-            backupSyncIntervalMs: 300000
-        }),
-        puppeteer: {
-            headless: true,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-gpu',
-                '--disable-dev-shm-usage'
-            ],
-            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable'
+    sock.ev.on('connection.update', (update) => {
+        const { connection, lastDisconnect } = update;
+        if(connection === 'close') {
+            const shouldReconnect = lastDisconnect.error?.output?.statusCode !== DisconnectReason.loggedOut;
+            logger.info('connection closed due to ', lastDisconnect.error, ', reconnecting ', shouldReconnect);
+            if(shouldReconnect) {
+                connectToWhatsApp();
+            }
+        } else if(connection === 'open') {
+            logger.info('opened connection');
         }
     });
 
-    client.on('ready', () => {
-        logger.info('NexusCoders Bot is ready');
+    sock.ev.on('messages.upsert', async m => {
+        if(m.type === 'notify') {
+            for(const msg of m.messages) {
+                if(!msg.key.fromMe) {
+                    await messageHandler(sock, msg);
+                }
+            }
+        }
     });
 
-    client.on('message', messageHandler);
+    sock.ev.on('creds.update', saveCreds);
 
-    client.on('authenticated', () => {
-        logger.info('AUTHENTICATED');
-    });
-
-    client.on('auth_failure', msg => {
-        logger.error('AUTHENTICATION FAILURE', msg);
-    });
-
-    try {
-        await client.initialize();
-    } catch (error) {
-        logger.error('Failed to initialize client:', error);
-        process.exit(1);
-    }
-
-    return client;
+    return sock;
 }
 
 const server = http.createServer((req, res) => {
@@ -84,34 +64,38 @@ const server = http.createServer((req, res) => {
 });
 
 async function main() {
-    const client = await initializeClient();
+    try {
+        await initializeMongoStore();
+        logger.info('Connected to MongoDB');
 
-    server.listen(PORT, () => {
-        logger.info(`Server running on port ${PORT}`);
-    });
+        const sock = await connectToWhatsApp();
 
-    process.on('unhandledRejection', (reason, promise) => {
-        console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-    });
+        server.listen(PORT, () => {
+            logger.info(`Server running on port ${PORT}`);
+        });
 
-    process.on('uncaughtException', (error) => {
-        console.error('Uncaught Exception:', error);
-    });
+        process.on('unhandledRejection', (reason, promise) => {
+            console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+        });
 
-    process.on('SIGINT', async () => {
-        logger.info('NexusCoders Bot shutting down...');
-        try {
-            await client.destroy();
-            await mongoose.disconnect();
-            server.close();
-        } catch (error) {
-            logger.error('Error during shutdown:', error);
-        }
-        process.exit(0);
-    });
+        process.on('uncaughtException', (error) => {
+            console.error('Uncaught Exception:', error);
+        });
+
+        process.on('SIGINT', async () => {
+            logger.info('NexusCoders Bot shutting down...');
+            try {
+                await mongoose.disconnect();
+                server.close();
+            } catch (error) {
+                logger.error('Error during shutdown:', error);
+            }
+            process.exit(0);
+        });
+    } catch (error) {
+        logger.error('Error in main function:', error);
+        process.exit(1);
+    }
 }
 
-main().catch(error => {
-    logger.error('Error in main function:', error);
-    process.exit(1);
-});
+main();
