@@ -8,7 +8,7 @@ const messageHandler = require('./src/handlers/messageHandler');
 const http = require('http');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/';
-const sessionId = process.env.SESSION_ID || 'nexuscoders-session';
+const sessionId = process.env.SESSION_ID || 'nexus-session';
 
 let store;
 
@@ -34,7 +34,8 @@ async function initializeClient() {
         authStrategy: new RemoteAuth({
             store: store,
             clientId: sessionId,
-            backupSyncIntervalMs: 300000
+            backupSyncIntervalMs: 300000,
+            dataPath: './auth_data' // Shorter path for storing auth data
         }),
         puppeteer: {
             headless: true,
