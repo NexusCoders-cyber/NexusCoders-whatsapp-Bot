@@ -1,18 +1,12 @@
 require('dotenv').config();
-const { default: makeWASocket, DisconnectReason, useMultiFileAuthState } = require('@adiwajshing/baileys');
-const { MongoStore } = require('wwebjs-mongo');
+const { default: makeWASocket, DisconnectReason, useMultiFileAuthState } = require('@whiskeysockets/baileys');
 const mongoose = require('mongoose');
-const config = require('./src/config');
 const logger = require('./src/utils/logger');
 const messageHandler = require('./src/handlers/messageHandler');
 const http = require('http');
-const fs = require('fs');
-const path = require('path');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/';
 const PORT = process.env.PORT || 3000;
-
-let store;
 
 async function initializeMongoStore() {
     await mongoose.connect(MONGODB_URI, {
@@ -20,7 +14,6 @@ async function initializeMongoStore() {
         useUnifiedTopology: true,
         serverSelectionTimeoutMS: 5000
     });
-    store = new MongoStore({ mongoose: mongoose });
 }
 
 async function connectToWhatsApp() {
@@ -54,22 +47,19 @@ async function connectToWhatsApp() {
     });
 
     sock.ev.on('creds.update', saveCreds);
-
     return sock;
 }
 
 const server = http.createServer((req, res) => {
     res.writeHead(200);
-    res.end('WhatsApp bot is running!');
+    res.end('NexusCoders WhatsApp bot is running!');
 });
 
 async function main() {
     try {
         await initializeMongoStore();
         logger.info('Connected to MongoDB');
-
-        const sock = await connectToWhatsApp();
-
+        await connectToWhatsApp();
         server.listen(PORT, () => {
             logger.info(`Server running on port ${PORT}`);
         });
