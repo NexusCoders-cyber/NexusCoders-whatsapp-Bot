@@ -2,14 +2,16 @@ const fs = require('fs');
 const path = require('path');
 
 const commands = new Map();
-const commandFiles = fs.readdirSync(path.join(__dirname, '../commands')).filter(file => file.endsWith('.js'));
+const commandsPath = path.join(__dirname, '..', 'commands');
 
-for (const file of commandFiles) {
-    const command = require(`../commands/${file}`);
+fs.readdirSync(commandsPath).filter(file => file.endsWith('.js')).forEach(file => {
+    const command = require(path.join(commandsPath, file));
     commands.set(command.name, command);
-}
+});
 
 module.exports = async (message) => {
+    if (!message.body.startsWith('!')) return;
+
     const args = message.body.slice(1).trim().split(/ +/);
     const commandName = args.shift().toLowerCase();
 
