@@ -1,12 +1,9 @@
 module.exports = {
     name: 'ping',
-    description: 'Check bot responsiveness',
-    async execute(message, args) {
-      try{
-        var ping = Date.now();
-        var ms = Date.now() - ping;
-
-        await message.reply(`Ping: ${ms}ms`);
-      }
-   },
+    execute: async (msg, args) => {
+        const start = Date.now();
+        const reply = await msg.reply('Pong!');
+        const end = Date.now();
+        await reply.reply(`Latency: ${end - start}ms`);
+    }
 };
