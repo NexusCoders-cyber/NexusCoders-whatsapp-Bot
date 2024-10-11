@@ -1,12 +1,11 @@
 const fs = require('fs');
 const path = require('path');
-const logger = require('../utils/logger');
 const config = require('../config');
 
 module.exports = {
     name: 'help',
     description: 'List all available commands or get specific command info',
-    async execute(message, args) {
+    execute: async (message, args) => {
         const currentTime = new Date().toLocaleTimeString();
         const username = message.from.split('@')[0];
         const commandFiles = fs.readdirSync(__dirname).filter(file => file.endsWith('.js'));
@@ -17,7 +16,7 @@ module.exports = {
 ❄ User : ${username}
 ❄ Status : free
 ❄ Mode : Public
-❄ Bot Name : ${config.botName}
+❄ Bot Name : NexusCoders Bot
 ❄ Prefix : ${config.prefix}
 *COMMANDS*
 ┏━━━━━━━━━━━\n`;
@@ -46,7 +45,5 @@ Description: ${commandModule.description}`;
 
             await message.reply(helpText);
         }
-
-        logger.info(`Help command executed by ${username}`);
     },
 };
