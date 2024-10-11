@@ -1,4 +1,5 @@
 const winston = require('winston');
+const path = require('path');
 
 const logger = winston.createLogger({
     level: 'info',
@@ -8,8 +9,8 @@ const logger = winston.createLogger({
     ),
     transports: [
         new winston.transports.Console(),
-        new winston.transports.File({ filename: 'error.log', level: 'error' }),
-        new winston.transports.File({ filename: 'combined.log' })
+        new winston.transports.File({ filename: path.join(__dirname, 'error.log'), level: 'error' }),
+        new winston.transports.File({ filename: path.join(__dirname, 'combined.log') })
     ]
 });
 
