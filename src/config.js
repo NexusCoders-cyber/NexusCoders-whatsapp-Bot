@@ -1,10 +1,6 @@
 module.exports = {
     prefix: '!',
-    timeZone: 'UTC',
-    rateLimitWindow: 60000,
-    rateLimitMax: 10,
-    botName: 'NexusCoders Bot',
-    botVersion: '1.0.0',
-    botAuthor: 'NexusCoders Team',
-    botAdmins: ['2348180146181'],
+    ownerNumber: '2348180146181',
+    mongodbUri: process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/',
+    sessionId: process.env.SESSION_ID || 'nexuscoders-session'
 };
