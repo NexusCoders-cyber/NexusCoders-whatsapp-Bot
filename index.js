@@ -55,7 +55,7 @@ async function connectToWhatsApp() {
         }
         if (connection === 'close') {
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            logger.info('Connection closed due to ', lastDisconnect?.error, ', reconnecting ', shouldReconnect);
+            logger.info('Connection closed due to ' + JSON.stringify(lastDisconnect?.error) + ', reconnecting ' + shouldReconnect);
             if (shouldReconnect) {
                 connectToWhatsApp();
             }
@@ -74,7 +74,7 @@ async function connectToWhatsApp() {
             for (const msg of m.messages) {
                 if (!msg.key.fromMe) {
                     try {
-                        logger.info(`Received message: ${JSON.stringify(msg)}`);
+                        logger.info('Received message: ' + JSON.stringify(msg));
                         await messageHandler(sock, msg);
                     } catch (error) {
                         logger.error('Error in message handler:', error);
@@ -96,13 +96,13 @@ const server = http.createServer((req, res) => {
 
 async function startServer() {
     server.listen(PORT, '0.0.0.0', () => {
-        logger.info(`Server running on port ${PORT}`);
+        logger.info('Server running on port ' + PORT);
     });
 }
 
 function setupKeepAlive() {
     setInterval(() => {
-        http.get(`http://localhost:${PORT}`, (res) => {
+        http.get('http://localhost:' + PORT, (res) => {
             if (res.statusCode === 200) {
                 logger.info('Keep-alive ping successful');
             } else {
