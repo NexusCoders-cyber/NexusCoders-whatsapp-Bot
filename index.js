@@ -10,7 +10,7 @@ const path = require('path');
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/';
 const PORT = process.env.PORT || 3000;
 const SESSION_DIR = './auth_info_baileys';
-const SESSION_DATA = process.env.SESSION_DATA ? Buffer.from(process.env.SESSION_DATA, 'base64') : null;
+const SESSION_DATA = process.env.SESSION_DATA;
 
 async function initializeMongoStore() {
     try {
@@ -31,7 +31,8 @@ async function connectToWhatsApp() {
 
     if (SESSION_DATA) {
         try {
-            state.creds = JSON.parse(SESSION_DATA.toString());
+            const sessionData = JSON.parse(Buffer.from(SESSION_DATA, 'base64').toString());
+            Object.assign(state, sessionData);
         } catch (error) {
             logger.error('Error parsing SESSION_DATA:', error);
         }
