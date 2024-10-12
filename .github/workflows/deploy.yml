@@ -1,54 +1,44 @@
-name: Deploy NexusCoders Bot
+version: '1.0'
+services:
+  - type: web
+    name: nexuscoders-whatsapp-bot
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 14
+      - key: MONGODB_URI
+        sync: false
+      - key: SESSION_DATA
+        sync: false
 
-on:
-  push:
-    branches:
-      - main
+  - type: worker
+    name: nexuscoders-whatsapp-bot-worker
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 14
+      - key: MONGODB_URI
+        sync: false
+      - key: SESSION_DATA
+        sync: false
 
-jobs:
-  deploy-render:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Deploy to Render
-        env:
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
-        run: |
-          curl -X POST https://api.render.com/v1/deploys \
-          -H "Authorization: Bearer $RENDER_API_KEY" \
-          -H "Content-Type: application/json" \
-          -d '{"serviceId": "'"$RENDER_SERVICE_ID"'"}'
+static_sites:
+  - name: nexuscoders-whatsapp-bot-static
+    env: static
+    buildCommand: npm run build
+    staticPublishPath: ./public
+    routes:
+      - path: /*
 
-  deploy-heroku:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: akhileshns/heroku-deploy@v3.12.12
-        with:
-          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-          heroku_app_name: ${{secrets.HEROKU_APP_NAME}}
-          heroku_email: ${{secrets.HEROKU_EMAIL}}
+databases:
+  - name: nexuscoders-whatsapp-bot-db
+    databaseName: nexuscoders
+    user: nexuscoders
 
-  deploy-koyeb:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Deploy to Koyeb
-        uses: koyeb/action-git-deploy@v1
-        with:
-          app-name: nexuscoders-bot
-          service-name: bot
-          service-env: '{"PORT": "3000"}'
-          git-branch: main
-        env:
-          KOYEB_API_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
-
-  deploy-replit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: replit/replit-deploy@v1
-        with:
-          repl-id: ${{ secrets.REPLIT_ID }}
-          token: ${{ secrets.REPLIT_TOKEN }}
+addons:
+  - plan: mongodb-addon
+    as: MONGODB
