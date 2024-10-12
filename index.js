@@ -1,11 +1,9 @@
 require('dotenv').config();
 const { default: makeWASocket, DisconnectReason, useMultiFileAuthState, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys');
+const P = require('pino');
 const mongoose = require('mongoose');
-const logger = require('./src/utils/logger');
 const messageHandler = require('./src/handlers/messageHandler');
 const http = require('http');
-const fs = require('fs').promises;
-const path = require('path');
 const qrcode = require('qrcode-terminal');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/';
@@ -18,11 +16,10 @@ async function initializeMongoStore() {
         await mongoose.connect(MONGODB_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 5000
         });
-        logger.info('Connected to MongoDB');
+        console.log('Connected to MongoDB');
     } catch (error) {
-        logger.error('Failed to connect to MongoDB:', error);
+        console.error('Failed to connect to MongoDB:', error);
         process.exit(1);
     }
 }
@@ -35,17 +32,17 @@ async function connectToWhatsApp() {
             const sessionData = JSON.parse(Buffer.from(SESSION_DATA, 'base64').toString());
             Object.assign(state, sessionData);
         } catch (error) {
-            logger.error('Error parsing SESSION_DATA:', error);
+            console.error('Error parsing SESSION_DATA:', error);
         }
     }
 
     const sock = makeWASocket({
         auth: {
             creds: state.creds,
-            keys: makeCacheableSignalKeyStore(state.keys, logger),
+            keys: makeCacheableSignalKeyStore(state.keys, P({ level: 'silent' })),
         },
         printQRInTerminal: !SESSION_DATA,
-        defaultQueryTimeoutMs: 60000,
+        logger: P({ level: 'silent' }),
     });
 
     sock.ev.on('connection.update', async (update) => {
@@ -55,16 +52,16 @@ async function connectToWhatsApp() {
         }
         if (connection === 'close') {
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            logger.info('Connection closed due to ' + JSON.stringify(lastDisconnect?.error) + ', reconnecting ' + shouldReconnect);
+            console.log('Connection closed due to', lastDisconnect?.error, ', reconnecting:', shouldReconnect);
             if (shouldReconnect) {
                 connectToWhatsApp();
             }
         } else if (connection === 'open') {
-            logger.info('Connected to WhatsApp');
+            console.log('Connected to WhatsApp');
             try {
                 await sock.sendMessage('status@broadcast', { text: 'NexusCoders Bot is connected and ready to use!' });
             } catch (error) {
-                logger.error('Error sending ready message:', error);
+                console.error('Error sending ready message:', error);
             }
         }
     });
@@ -74,10 +71,10 @@ async function connectToWhatsApp() {
             for (const msg of m.messages) {
                 if (!msg.key.fromMe) {
                     try {
-                        logger.info('Received message: ' + JSON.stringify(msg));
+                        console.log('Received message:', JSON.stringify(msg));
                         await messageHandler(sock, msg);
                     } catch (error) {
-                        logger.error('Error in message handler:', error);
+                        console.error('Error in message handler:', error);
                     }
                 }
             }
@@ -96,7 +93,7 @@ const server = http.createServer((req, res) => {
 
 async function startServer() {
     server.listen(PORT, '0.0.0.0', () => {
-        logger.info('Server running on port ' + PORT);
+        console.log(`Server running on port ${PORT}`);
     });
 }
 
@@ -104,12 +101,12 @@ function setupKeepAlive() {
     setInterval(() => {
         http.get(`http://localhost:${PORT}`, (res) => {
             if (res.statusCode === 200) {
-                logger.info('Keep-alive ping successful');
+                console.log('Keep-alive ping successful');
             } else {
-                logger.warn('Keep-alive ping failed');
+                console.warn('Keep-alive ping failed');
             }
         }).on('error', (err) => {
-            logger.error('Keep-alive error:', err);
+            console.error('Keep-alive error:', err);
         });
     }, 5 * 60 * 1000);
 }
@@ -122,25 +119,25 @@ async function main() {
         setupKeepAlive();
 
         process.on('unhandledRejection', (reason, promise) => {
-            logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+            console.error('Unhandled Rejection at:', promise, 'reason:', reason);
         });
 
         process.on('uncaughtException', (error) => {
-            logger.error('Uncaught Exception:', error);
+            console.error('Uncaught Exception:', error);
         });
 
         process.on('SIGINT', async () => {
-            logger.info('NexusCoders Bot shutting down...');
+            console.log('NexusCoders Bot shutting down...');
             try {
                 await mongoose.disconnect();
                 server.close();
             } catch (error) {
-                logger.error('Error during shutdown:', error);
+                console.error('Error during shutdown:', error);
             }
             process.exit(0);
         });
     } catch (error) {
-        logger.error('Error in main function:', error);
+        console.error('Error in main function:', error);
         process.exit(1);
     }
 }
