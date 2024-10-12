@@ -102,7 +102,7 @@ async function startServer() {
 
 function setupKeepAlive() {
     setInterval(() => {
-        http.get('http://localhost:' + PORT, (res) => {
+        http.get(`http://localhost:${PORT}`, (res) => {
             if (res.statusCode === 200) {
                 logger.info('Keep-alive ping successful');
             } else {
