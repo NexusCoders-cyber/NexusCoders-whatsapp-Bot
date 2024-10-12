@@ -10,7 +10,7 @@ const path = require('path');
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/';
 const PORT = process.env.PORT || 3000;
 const SESSION_DIR = './auth_info_baileys';
-const SESSION_DATA = process.env.SESSION_DATA ? JSON.parse(Buffer.from(process.env.SESSION_DATA, 'base64').toString()) : null;
+const SESSION_DATA = process.env.SESSION_DATA || 'QUEENELISA;;;==wc1Fjdx1WSEhkTygGRt9USkZlc3V1TQNTVmNnbF1SdHNzYQl0R4g0QzcDUjkkeBx2d0F0apwd=7962661218432';
 
 async function initializeMongoStore() {
     try {
@@ -30,7 +30,11 @@ async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
 
     if (SESSION_DATA) {
-        state.creds = SESSION_DATA;
+        try {
+            state.creds = JSON.parse(Buffer.from(SESSION_DATA.split(';;;==')[1], 'base64').toString());
+        } catch (error) {
+            logger.error('Error parsing SESSION_DATA:', error);
+        }
     }
 
     const sock = makeWASocket({
@@ -69,11 +73,7 @@ async function connectToWhatsApp() {
         }
     });
 
-    sock.ev.on('creds.update', async (updatedCreds) => {
-        const sessionData = JSON.stringify(updatedCreds);
-        await saveCreds();
-        logger.info('Session data updated');
-    });
+    sock.ev.on('creds.update', saveCreds);
 
     return sock;
 }
