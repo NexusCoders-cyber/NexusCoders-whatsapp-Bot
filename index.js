@@ -6,6 +6,7 @@ const messageHandler = require('./src/handlers/messageHandler');
 const http = require('http');
 const fs = require('fs').promises;
 const path = require('path');
+const qrcode = require('qrcode-terminal');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/';
 const PORT = process.env.PORT || 3000;
@@ -47,8 +48,11 @@ async function connectToWhatsApp() {
         defaultQueryTimeoutMs: 60000,
     });
 
-    sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect } = update;
+    sock.ev.on('connection.update', async (update) => {
+        const { connection, lastDisconnect, qr } = update;
+        if (qr && !SESSION_DATA) {
+            qrcode.generate(qr, { small: true });
+        }
         if (connection === 'close') {
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
             logger.info('Connection closed due to ', lastDisconnect?.error, ', reconnecting ', shouldReconnect);
@@ -57,6 +61,11 @@ async function connectToWhatsApp() {
             }
         } else if (connection === 'open') {
             logger.info('Connected to WhatsApp');
+            try {
+                await sock.sendMessage('status@broadcast', { text: 'NexusCoders Bot is connected and ready to use!' });
+            } catch (error) {
+                logger.error('Error sending ready message:', error);
+            }
         }
     });
 
@@ -65,6 +74,7 @@ async function connectToWhatsApp() {
             for (const msg of m.messages) {
                 if (!msg.key.fromMe) {
                     try {
+                        logger.info(`Received message: ${JSON.stringify(msg)}`);
                         await messageHandler(sock, msg);
                     } catch (error) {
                         logger.error('Error in message handler:', error);
@@ -85,7 +95,7 @@ const server = http.createServer((req, res) => {
 });
 
 async function startServer() {
-    server.listen(PORT, () => {
+    server.listen(PORT, '0.0.0.0', () => {
         logger.info(`Server running on port ${PORT}`);
     });
 }
