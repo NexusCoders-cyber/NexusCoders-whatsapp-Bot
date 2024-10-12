@@ -142,4 +142,4 @@ async function main() {
     }
 }
 
-main();
+start();
