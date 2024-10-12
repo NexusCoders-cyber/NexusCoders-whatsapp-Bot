@@ -111,7 +111,7 @@ function setupKeepAlive() {
     }, 5 * 60 * 1000);
 }
 
-async function main() {
+async function start() {
     try {
         await initializeMongoStore();
         await connectToWhatsApp();
