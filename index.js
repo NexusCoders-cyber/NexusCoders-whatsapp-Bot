@@ -30,18 +30,14 @@ async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
 
     if (SESSION_DATA) {
-        try {
-            state.creds = JSON.parse(Buffer.from(SESSION_DATA.split(';;;==')[1], 'base64').toString());
-        } catch (error) {
-            logger.error('Error parsing SESSION_DATA:', error);
+        const sessionParts = SESSION_DATA.split(';;;==');
+        if (sessionParts.length > 1) {
+            state.creds = Buffer.from(sessionParts[1], 'base64');
         }
     }
 
     const sock = makeWASocket({
-        auth: {
-            creds: state.creds,
-            keys: makeCacheableSignalKeyStore(state.keys, logger),
-        },
+        auth: state,
         printQRInTerminal: !SESSION_DATA,
         defaultQueryTimeoutMs: 60000,
     });
