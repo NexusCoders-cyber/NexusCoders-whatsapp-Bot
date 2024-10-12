@@ -10,7 +10,7 @@ const path = require('path');
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/';
 const PORT = process.env.PORT || 3000;
 const SESSION_DIR = './auth_info_baileys';
-const SESSION_DATA = process.env.SESSION_DATA || 'QUEENELISA;;;==wc1Fjdx1WSEhkTygGRt9USkZlc3V1TQNTVmNnbF1SdHNzYQl0R4g0QzcDUjkkeBx2d0F0apwd=7962661218432';
+const SESSION_DATA = process.env.SESSION_DATA ? Buffer.from(process.env.SESSION_DATA, 'base64') : null;
 
 async function initializeMongoStore() {
     try {
@@ -30,14 +30,18 @@ async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
 
     if (SESSION_DATA) {
-        const sessionParts = SESSION_DATA.split(';;;==');
-        if (sessionParts.length > 1) {
-            state.creds = Buffer.from(sessionParts[1], 'base64');
+        try {
+            state.creds = JSON.parse(SESSION_DATA.toString());
+        } catch (error) {
+            logger.error('Error parsing SESSION_DATA:', error);
         }
     }
 
     const sock = makeWASocket({
-        auth: state,
+        auth: {
+            creds: state.creds,
+            keys: makeCacheableSignalKeyStore(state.keys, logger),
+        },
         printQRInTerminal: !SESSION_DATA,
         defaultQueryTimeoutMs: 60000,
     });
