@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { default: makeWASocket, useMultiFileAuthState, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, DisconnectReason, useMultiFileAuthState, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys');
 const mongoose = require('mongoose');
 const logger = require('./src/utils/logger');
 const messageHandler = require('./src/handlers/messageHandler');
@@ -9,35 +9,26 @@ const path = require('path');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/';
 const PORT = process.env.PORT || 3000;
-const SESSION_DIR = './session';
-const SESSION_FILE = path.join(SESSION_DIR, 'session.json');
+const SESSION_DIR = './auth_info_baileys';
 const SESSION_DATA = process.env.SESSION_DATA ? JSON.parse(Buffer.from(process.env.SESSION_DATA, 'base64').toString()) : null;
 
 async function initializeMongoStore() {
-    await mongoose.connect(MONGODB_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-        serverSelectionTimeoutMS: 5000
-    });
-}
-
-async function getSessionData() {
     try {
-        await fs.mkdir(SESSION_DIR, { recursive: true });
-        const data = await fs.readFile(SESSION_FILE, 'utf8');
-        return JSON.parse(data);
+        await mongoose.connect(MONGODB_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            serverSelectionTimeoutMS: 5000
+        });
+        logger.info('Connected to MongoDB');
     } catch (error) {
-        return {};
+        logger.error('Failed to connect to MongoDB:', error);
+        process.exit(1);
     }
 }
 
-async function saveSessionData(data) {
-    await fs.writeFile(SESSION_FILE, JSON.stringify(data, null, 2));
-}
-
 async function connectToWhatsApp() {
-    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
-    
+    const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
+
     if (SESSION_DATA) {
         state.creds = SESSION_DATA;
     }
@@ -51,15 +42,16 @@ async function connectToWhatsApp() {
         defaultQueryTimeoutMs: 60000,
     });
 
-    sock.ev.on('connection.update', async (update) => {
+    sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect } = update;
-        if (connection === 'open') {
+        if (connection === 'close') {
+            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+            logger.info('Connection closed due to ', lastDisconnect?.error, ', reconnecting ', shouldReconnect);
+            if (shouldReconnect) {
+                connectToWhatsApp();
+            }
+        } else if (connection === 'open') {
             logger.info('Connected to WhatsApp');
-            const sessionData = sock.authState.creds;
-            await saveSessionData(sessionData);
-        } else if (connection === 'close') {
-            logger.info('Connection closed. Attempting to reconnect...');
-            setTimeout(connectToWhatsApp, 5000);
         }
     });
 
@@ -67,13 +59,21 @@ async function connectToWhatsApp() {
         if (m.type === 'notify') {
             for (const msg of m.messages) {
                 if (!msg.key.fromMe) {
-                    await messageHandler(sock, msg);
+                    try {
+                        await messageHandler(sock, msg);
+                    } catch (error) {
+                        logger.error('Error in message handler:', error);
+                    }
                 }
             }
         }
     });
 
-    sock.ev.on('creds.update', saveCreds);
+    sock.ev.on('creds.update', async (updatedCreds) => {
+        const sessionData = JSON.stringify(updatedCreds);
+        await saveCreds();
+        logger.info('Session data updated');
+    });
 
     return sock;
 }
@@ -83,14 +83,32 @@ const server = http.createServer((req, res) => {
     res.end('NexusCoders WhatsApp bot is running!');
 });
 
+async function startServer() {
+    server.listen(PORT, () => {
+        logger.info(`Server running on port ${PORT}`);
+    });
+}
+
+function setupKeepAlive() {
+    setInterval(() => {
+        http.get(`http://localhost:${PORT}`, (res) => {
+            if (res.statusCode === 200) {
+                logger.info('Keep-alive ping successful');
+            } else {
+                logger.warn('Keep-alive ping failed');
+            }
+        }).on('error', (err) => {
+            logger.error('Keep-alive error:', err);
+        });
+    }, 5 * 60 * 1000);
+}
+
 async function main() {
     try {
         await initializeMongoStore();
-        logger.info('Connected to MongoDB');
         await connectToWhatsApp();
-        server.listen(PORT, () => {
-            logger.info(`Server running on port ${PORT}`);
-        });
+        await startServer();
+        setupKeepAlive();
 
         process.on('unhandledRejection', (reason, promise) => {
             logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
