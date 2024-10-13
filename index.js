@@ -6,17 +6,11 @@ const messageHandler = require('./src/handlers/messageHandler');
 const http = require('http');
 const config = require('./config');
 const { Boom } = require('@hapi/boom');
-const fs = require('fs');
 const P = require('pino');
-
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/';
-const PORT = process.env.PORT || 3000;
-const SESSION_DIR = './auth_info_baileys';
-const SESSION_DATA = process.env.SESSION_DATA;
 
 async function initializeMongoStore() {
     try {
-        await mongoose.connect(MONGODB_uri, {
+        await mongoose.connect(config.mongodbUri, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
             serverSelectionTimeoutMS: 5000
@@ -29,18 +23,18 @@ async function initializeMongoStore() {
 }
 
 async function connectToWhatsApp() {
-    const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
+    const { state, saveCreds } = await useMultiFileAuthState(config.sessionDir);
 
-    if (SESSION_DATA) {
-        const sessionData = JSON.parse(Buffer.from(SESSION_DATA, 'base64').toString());
+    if (process.env.SESSION_DATA) {
+        const sessionData = JSON.parse(Buffer.from(process.env.SESSION_DATA, 'base64').toString());
         Object.assign(state, sessionData);
     }
 
     const sock = makeWASocket({
         auth: state,
         printQRInTerminal: false,
-        logger: P({ level: 'silent' }),
-        browser: ['Ubuntu', 'Chrome', '22.04.4'],
+        logger: P({ level: config.logLevel }),
+        browser: [config.botName, 'Chrome', '22.04.4'],
         version: [2, 2323, 4],
         defaultQueryTimeoutMs: undefined,
         connectTimeoutMs: 60000,
@@ -49,7 +43,7 @@ async function connectToWhatsApp() {
         generateHighQualityLinkPreview: true,
         syncFullHistory: true,
         markOnlineOnConnect: true,
-        keepAliveIntervalMs: 10000,
+        keepAliveIntervalMs: config.autoReconnectInterval,
     });
 
     sock.ev.on('connection.update', async (update) => {
@@ -63,7 +57,7 @@ async function connectToWhatsApp() {
         } else if (connection === 'open') {
             logger.info('Connected to WhatsApp');
             try {
-                await sock.sendMessage(config.ownerNumber + '@s.whatsapp.net', { text: 'NexusCoders Bot is connected and ready to use!' });
+                await sock.sendMessage(config.ownerNumber + '@s.whatsapp.net', { text: `${config.botName} is connected and ready to use!` });
             } catch (error) {
                 logger.error('Error sending ready message:', error);
             }
@@ -91,18 +85,18 @@ async function connectToWhatsApp() {
 
 const server = http.createServer((req, res) => {
     res.writeHead(200);
-    res.end('NexusCoders WhatsApp bot is running!');
+    res.end(`${config.botName} is running!`);
 });
 
 async function startServer() {
-    server.listen(PORT, '0.0.0.0', () => {
-        logger.info('Server running on port ' + PORT);
+    server.listen(config.port, '0.0.0.0', () => {
+        logger.info(`Server running on port ${config.port}`);
     });
 }
 
 function setupKeepAlive() {
     setInterval(() => {
-        http.get(`http://localhost:${PORT}`, (res) => {
+        http.get(`http://localhost:${config.port}`, (res) => {
             if (res.statusCode === 200) {
                 logger.info('Keep-alive ping successful');
             } else {
@@ -130,7 +124,7 @@ async function main() {
         });
 
         process.on('SIGINT', async () => {
-            logger.info('NexusCoders Bot shutting down...');
+            logger.info(`${config.botName} shutting down...`);
             try {
                 await mongoose.disconnect();
                 server.close();
