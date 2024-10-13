@@ -5,6 +5,9 @@ const logger = require('./src/utils/logger');
 const messageHandler = require('./src/handlers/messageHandler');
 const http = require('http');
 const config = require('./config');
+const { Boom } = require('@hapi/boom');
+const fs = require('fs');
+const P = require('pino');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/';
 const PORT = process.env.PORT || 3000;
@@ -13,7 +16,7 @@ const SESSION_DATA = process.env.SESSION_DATA;
 
 async function initializeMongoStore() {
     try {
-        await mongoose.connect(MONGODB_URI, {
+        await mongoose.connect(MONGODB_uri, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
             serverSelectionTimeoutMS: 5000
@@ -34,19 +37,25 @@ async function connectToWhatsApp() {
     }
 
     const sock = makeWASocket({
-        auth: {
-            creds: state.creds,
-            keys: makeCacheableSignalKeyStore(state.keys, logger),
-        },
+        auth: state,
         printQRInTerminal: false,
-        defaultQueryTimeoutMs: 60000,
-        forceLogin: true,
+        logger: P({ level: 'silent' }),
+        browser: ['Ubuntu', 'Chrome', '22.04.4'],
+        version: [2, 2323, 4],
+        defaultQueryTimeoutMs: undefined,
+        connectTimeoutMs: 60000,
+        emitOwnEvents: true,
+        fireInitQueries: true,
+        generateHighQualityLinkPreview: true,
+        syncFullHistory: true,
+        markOnlineOnConnect: true,
+        keepAliveIntervalMs: 10000,
     });
 
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update;
         if (connection === 'close') {
-            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+            const shouldReconnect = (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
             logger.info('Connection closed due to ' + JSON.stringify(lastDisconnect?.error) + ', reconnecting ' + shouldReconnect);
             if (shouldReconnect) {
                 connectToWhatsApp();
