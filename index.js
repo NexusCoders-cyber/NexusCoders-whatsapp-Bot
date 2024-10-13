@@ -1,11 +1,10 @@
 require('dotenv').config();
-const { default: makeWASocket, DisconnectReason, useMultiFileAuthState, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, DisconnectReason, useMultiFileAuthState } = require('@whiskeysockets/baileys');
 const mongoose = require('mongoose');
 const logger = require('./src/utils/logger');
 const messageHandler = require('./src/handlers/messageHandler');
 const http = require('http');
 const config = require('./config');
-const { Boom } = require('@hapi/boom');
 const P = require('pino');
 
 async function initializeMongoStore() {
@@ -49,7 +48,7 @@ async function connectToWhatsApp() {
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect } = update;
         if (connection === 'close') {
-            const shouldReconnect = (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
+            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
             logger.info('Connection closed due to ' + JSON.stringify(lastDisconnect?.error) + ', reconnecting ' + shouldReconnect);
             if (shouldReconnect) {
                 connectToWhatsApp();
