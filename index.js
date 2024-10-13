@@ -29,7 +29,7 @@ async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
 
     if (SESSION_DATA) {
-        const sessionData = JSON.parse(Buffer.from(SESSION_DATA).toString());
+        const sessionData = JSON.parse(Buffer.from(SESSION_DATA, 'base64').toString());
         Object.assign(state, sessionData);
     }
 
