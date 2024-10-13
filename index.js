@@ -43,7 +43,7 @@ async function connectToWhatsApp() {
       creds: state.creds,
       keys: makeCacheableSignalKeyStore(state.keys, logger),
     },
-    printQRInTerminal: false, // Changed to true for easier debugging
+    printQRInTerminal: true, // Changed to true for easier debugging
     defaultQueryTimeoutMs: 60000,
     // Removed forceLogin: true as it's not a standard option
   });
