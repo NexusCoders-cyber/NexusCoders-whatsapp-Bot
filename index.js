@@ -4,28 +4,12 @@ const mongoose = require('mongoose');
 const logger = require('./src/utils/logger');
 const messageHandler = require('./src/handlers/messageHandler');
 const http = require('http');
-const fs = require('fs').promises;
-const path = require('path');
-const qrcode = require('qrcode-terminal');
+const config = require('./config');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/';
 const PORT = process.env.PORT || 3000;
 const SESSION_DIR = './auth_info_baileys';
 const SESSION_DATA = process.env.SESSION_DATA;
-const OWNER_JID = process.env.OWNER_JID;
-
-const commands = new Map();
-
-async function loadCommands() {
-    const commandFiles = await fs.readdir(path.join(__dirname, 'src', 'handlers', 'commands'));
-    for (const file of commandFiles) {
-        if (file.endsWith('.js')) {
-            const command = require(`./src/handlers/commands/${file}`);
-            commands.set(command.name, command);
-            logger.info(`Loaded command: ${command.name}`);
-        }
-    }
-}
 
 async function initializeMongoStore() {
     try {
@@ -45,12 +29,8 @@ async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
 
     if (SESSION_DATA) {
-        try {
-            const sessionData = JSON.parse(Buffer.from(SESSION_DATA, 'base64').toString());
-            Object.assign(state, sessionData);
-        } catch (error) {
-            logger.error('Error parsing SESSION_DATA:', error);
-        }
+        const sessionData = JSON.parse(Buffer.from(SESSION_DATA, 'base64').toString());
+        Object.assign(state, sessionData);
     }
 
     const sock = makeWASocket({
@@ -58,15 +38,13 @@ async function connectToWhatsApp() {
             creds: state.creds,
             keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
-        printQRInTerminal: !SESSION_DATA,
+        printQRInTerminal: false,
         defaultQueryTimeoutMs: 60000,
+        forceLogin: true,
     });
 
     sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect, qr } = update;
-        if (qr && !SESSION_DATA) {
-            qrcode.generate(qr, { small: true });
-        }
+        const { connection, lastDisconnect } = update;
         if (connection === 'close') {
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
             logger.info('Connection closed due to ' + JSON.stringify(lastDisconnect?.error) + ', reconnecting ' + shouldReconnect);
@@ -75,12 +53,8 @@ async function connectToWhatsApp() {
             }
         } else if (connection === 'open') {
             logger.info('Connected to WhatsApp');
-            await loadCommands();
             try {
-                await sock.sendMessage('status@broadcast', { text: 'NexusCoders Bot is connected and ready to use!' });
-                if (OWNER_JID) {
-                    await sock.sendMessage(OWNER_JID, { text: 'NexusCoders bot is connected and ready to use!' });
-                }
+                await sock.sendMessage(config.ownerNumber + '@s.whatsapp.net', { text: 'NexusCoders Bot is connected and ready to use!' });
             } catch (error) {
                 logger.error('Error sending ready message:', error);
             }
@@ -90,21 +64,9 @@ async function connectToWhatsApp() {
     sock.ev.on('messages.upsert', async m => {
         if (m.type === 'notify') {
             for (const msg of m.messages) {
-                if (!msg.key.fromMe && msg.message) {
+                if (!msg.key.fromMe) {
                     try {
-                        logger.info('Received message: ' + JSON.stringify(msg));
-                        const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
-                        if (text.startsWith('!')) {
-                            const [commandName, ...args] = text.slice(1).split(' ');
-                            const command = commands.get(commandName);
-                            if (command) {
-                                await command.execute(sock, msg, args);
-                            } else {
-                                await messageHandler(sock, msg);
-                            }
-                        } else {
-                            await messageHandler(sock, msg);
-                        }
+                        await messageHandler(sock, msg);
                     } catch (error) {
                         logger.error('Error in message handler:', error);
                     }
