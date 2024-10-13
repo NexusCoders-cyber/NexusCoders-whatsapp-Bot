@@ -1,9 +1,40 @@
 require('dotenv').config();
 
 module.exports = {
+    botName: 'NexusCoders Bot',
+    version: '1.0.0',
     ownerNumber: process.env.OWNER_NUMBER || '2347075663318',
     prefix: process.env.PREFIX || '!',
     mongodbUri: process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/',
     port: process.env.PORT || 3000,
     sessionDir: './auth_info_baileys',
+    maxFileSize: 100 * 1024 * 1024,
+    supportedMimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'audio/mpeg'],
+    cooldownDuration: 3000,
+    maxGroupSize: 257,
+    whitelistedNumbers: process.env.WHITELISTED_NUMBERS ? process.env.WHITELISTED_NUMBERS.split(',') : [],
+    blacklistedNumbers: process.env.BLACKLISTED_NUMBERS ? process.env.BLACKLISTED_NUMBERS.split(',') : [],
+    apiKeys: {
+        openai: process.env.OPENAI_API_KEY,
+        googleMaps: process.env.GOOGLE_MAPS_API_KEY,
+        weather: process.env.WEATHER_API_KEY,
+    },
+    defaultLanguage: 'en',
+    timeZone: 'UTC',
+    logLevel: process.env.LOG_LEVEL || 'info',
+    maxCommandHistorySize: 50,
+    autoReconnectInterval: 10000,
+    maxReconnectAttempts: 5,
+    commandCooldown: new Map(),
+    featureFlags: {
+        enableAI: true,
+        enableGroupManagement: true,
+        enableMediaDownloader: true,
+        enableStickers: true,
+    },
+    nexusCodersInfo: {
+        website: 'https://nexuscoders.com',
+        supportEmail: 'support@nexuscoders.com',
+        githubRepo: 'https://github.com/NexusCoders/whatsapp-bot',
+    },
 };
