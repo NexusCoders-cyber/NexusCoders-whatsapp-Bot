@@ -3,7 +3,7 @@ require('dotenv').config();
 module.exports = {
     botName: 'NexusCoders Bot',
     version: '1.0.0',
-    ownerNumber: process.env.OWNER_NUMBER || '2347075663318',
+    ownerNumber: process.env.OWNER_NUMBER || '08180146181',
     prefix: process.env.PREFIX || '!',
     mongodbUri: process.env.MONGODB_URI || 'mongodb+srv://mateochatbot:xdtL2bYQ9eV3CeXM@gerald.r2hjy.mongodb.net/',
     port: process.env.PORT || 3000,
