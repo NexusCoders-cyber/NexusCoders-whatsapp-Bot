@@ -34,7 +34,7 @@ async function connectToWhatsApp() {
 
     const sock = makeWASocket({
         auth: state,
-        printQRInTerminal: !SESSION_DATA,
+        printQRInTerminal: false,
         logger: P({ level: config.logLevel }),
         browser: [config.botName, 'Chrome', '22.04.4'],
         version: [2, 2323, 4],
