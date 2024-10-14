@@ -12,7 +12,7 @@ async function connectToDatabase() {
         logger.info('Connected to MongoDB');
     } catch (error) {
         logger.error('Failed to connect to MongoDB:', error);
-        throw error;
+        process.exit(1);
     }
 }
 
@@ -22,7 +22,6 @@ async function disconnectFromDatabase() {
         logger.info('Disconnected from MongoDB');
     } catch (error) {
         logger.error('Error disconnecting from MongoDB:', error);
-        throw error;
     }
 }
 
