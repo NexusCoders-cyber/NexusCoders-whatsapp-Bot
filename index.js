@@ -1,47 +1,44 @@
 require('dotenv').config();
 const { default: makeWASocket, DisconnectReason, useMultiFileAuthState } = require('@whiskeysockets/baileys');
-const mongoose = require('mongoose');
+const P = require('pino');
+const http = require('http');
+const fs = require('fs').promises;
+const path = require('path');
+const { connectToDatabase, disconnectFromDatabase } = require('./database');
 const logger = require('./src/utils/logger');
 const messageHandler = require('./src/handlers/messageHandler');
-const http = require('http');
 const config = require('./config');
-const P = require('pino');
 
-async function initializeMongoStore() {
+async function ensureSessionDir() {
     try {
-        await mongoose.connect(config.mongodbUri, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 5000
-        });
-        logger.info('Connected to MongoDB');
+        await fs.mkdir(config.sessionDir, { recursive: true });
     } catch (error) {
-        logger.error('Failed to connect to MongoDB:', error);
+        logger.error('Failed to create session directory:', error);
         process.exit(1);
     }
 }
 
 async function connectToWhatsApp() {
+    await ensureSessionDir();
     const { state, saveCreds } = await useMultiFileAuthState(config.sessionDir);
 
     if (process.env.SESSION_DATA) {
-        const sessionData = JSON.parse(Buffer.from(process.env.SESSION_DATA, 'base64').toString());
-        Object.assign(state, sessionData);
+        try {
+            const sessionData = JSON.parse(Buffer.from(process.env.SESSION_DATA, 'base64').toString());
+            Object.assign(state, sessionData);
+            await fs.writeFile(path.join(config.sessionDir, 'creds.json'), JSON.stringify(sessionData));
+        } catch (error) {
+            logger.error('Failed to parse or save SESSION_DATA:', error);
+        }
     }
 
     const sock = makeWASocket({
         auth: state,
-        printQRInTerminal: false,
+        printQRInTerminal: !SESSION_DATA,
         logger: P({ level: config.logLevel }),
         browser: [config.botName, 'Chrome', '22.04.4'],
         version: [2, 2323, 4],
-        defaultQueryTimeoutMs: undefined,
         connectTimeoutMs: 60000,
-        emitOwnEvents: true,
-        fireInitQueries: true,
-        generateHighQualityLinkPreview: true,
-        syncFullHistory: true,
-        markOnlineOnConnect: true,
         keepAliveIntervalMs: config.autoReconnectInterval,
     });
 
@@ -109,7 +106,7 @@ function setupKeepAlive() {
 
 async function main() {
     try {
-        await initializeMongoStore();
+        await connectToDatabase();
         await connectToWhatsApp();
         await startServer();
         setupKeepAlive();
@@ -125,7 +122,7 @@ async function main() {
         process.on('SIGINT', async () => {
             logger.info(`${config.botName} shutting down...`);
             try {
-                await mongoose.disconnect();
+                await disconnectFromDatabase();
                 server.close();
             } catch (error) {
                 logger.error('Error during shutdown:', error);
