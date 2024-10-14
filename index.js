@@ -25,8 +25,8 @@ async function connectToWhatsApp() {
     if (process.env.SESSION_DATA) {
         try {
             const sessionData = JSON.parse(Buffer.from(process.env.SESSION_DATA, 'base64').toString());
-            Object.assign(state, sessionData);
             await fs.writeFile(path.join(config.sessionDir, 'creds.json'), JSON.stringify(sessionData));
+            logger.info('Session data loaded from environment variable');
         } catch (error) {
             logger.error('Failed to parse or save SESSION_DATA:', error);
         }
@@ -34,7 +34,7 @@ async function connectToWhatsApp() {
 
     const sock = makeWASocket({
         auth: state,
-        printQRInTerminal: false,
+        printQRInTerminal: false, // Enable QR code in terminal for initial setup
         logger: P({ level: config.logLevel }),
         browser: [config.botName, 'Chrome', '22.04.4'],
         version: [2, 2323, 4],
