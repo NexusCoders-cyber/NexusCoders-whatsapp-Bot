@@ -47,7 +47,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/nexuscoders-whatsapp-bot.git"
+    "url": "git+https://github.com/NexusCoders-cyber/NexusCoders-whatsapp-Bot.git"
   },
   "keywords": [
     "whatsapp-bot",
@@ -60,7 +60,7 @@
   "author": "NexusCoders",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/yourusername/nexuscoders-whatsapp-bot/issues"
+    "url": "https://github.com/NexusCoders-cyber/nexuscoders-whatsapp-bot/issues"
   },
-  "homepage": "https://github.com/yourusername/nexuscoders-whatsapp-bot#readme"
+  "homepage": "https://github.com/NexusCoders-cyber/nexuscoders-whatsapp-bot#readme"
 }
