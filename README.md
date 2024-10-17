@@ -1,6 +1,6 @@
 # NexusCoders WhatsApp Bot
 
-A powerful and feature-rich WhatsApp bot created by the NexusCoders team.
+A powerful,fast and feature-rich WhatsApp bot created by the NexusCoders team.
 
 ![NexusCoders Team Logo](https://example.com/nexuscoders-logo.png)
 
