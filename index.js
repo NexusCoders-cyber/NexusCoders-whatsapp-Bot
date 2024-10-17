@@ -16,18 +16,15 @@ let initialConnection = true;
 const sessionDir = path.join(process.cwd(), 'auth_info_baileys');
 
 async function ensureSessionDir() {
-    try {
-        await fs.ensureDir(sessionDir);
-        return true;
-    } catch (error) {
-        logger.error('Failed to create session directory:', error);
-        return false;
-    }
+    await fs.ensureDir(sessionDir);
+    await fs.emptyDir(sessionDir);
+    return true;
 }
 
 async function writeSessionFile(sessionData, filePath) {
     try {
-        await fs.writeFile(filePath, sessionData);
+        const parsedData = JSON.parse(sessionData);
+        await fs.writeJson(filePath, parsedData, { spaces: 2 });
         return true;
     } catch (error) {
         logger.error('Failed to write session file:', error);
@@ -58,12 +55,14 @@ async function connectToWhatsApp() {
     const sock = makeWASocket({
         version,
         auth: state,
-        printQRInTerminal: false,
+        printQRInTerminal: true,
         logger: P({ level: 'silent' }),
-        browser: ['NexusCoders-Bot', 'Chrome', '112'],
+        browser: Browsers.appropriate('Chrome'),
         msgRetryCounterCache,
-        defaultQueryTimeoutMs: undefined,
+        defaultQueryTimeoutMs: 60000,
         connectTimeoutMs: 60000,
+        retryRequestDelayMs: 5000,
+        maxRetries: 5,
         qrTimeout: 40000,
         getMessage: async () => {
             return { conversation: 'NexusCoders WhatsApp Bot' };
@@ -78,12 +77,16 @@ async function connectToWhatsApp() {
         }
         
         if (connection === 'close') {
-            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-            logger.info('Connection closed due to:', lastDisconnect?.error?.output?.payload?.message);
+            const statusCode = lastDisconnect?.error?.output?.statusCode;
+            const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+            logger.info(`Connection closed. Status code: ${statusCode}`);
             
             if (shouldReconnect) {
                 logger.info('Reconnecting...');
-                setTimeout(connectToWhatsApp, 3000);
+                setTimeout(connectToWhatsApp, 5000);
+            } else {
+                logger.info('Connection terminated. Cleaning up session...');
+                await fs.emptyDir(sessionDir);
             }
         }
         
@@ -93,7 +96,7 @@ async function connectToWhatsApp() {
                 initialConnection = false;
                 try {
                     await sock.sendMessage(process.env.OWNER_NUMBER + '@s.whatsapp.net', { 
-                        text: 'Bot is online and ready!' 
+                        text: 'NexusCoders Bot is online and ready!' 
                     });
                 } catch (error) {
                     logger.error('Failed to send startup message:', error);
@@ -103,11 +106,16 @@ async function connectToWhatsApp() {
     });
 
     sock.ev.on('creds.update', async () => {
-        await saveCreds();
-        if (process.env.RENDER) {
-            const credsFile = await fs.readFile(path.join(sessionDir, 'creds.json'), 'utf8');
-            logger.info('New session data generated. Please update your SESSION_DATA env variable with this value:');
-            logger.info(Buffer.from(credsFile).toString('base64'));
+        try {
+            await saveCreds();
+            if (process.env.RENDER) {
+                const credsFile = await fs.readFile(path.join(sessionDir, 'creds.json'), 'utf8');
+                const sessionData = Buffer.from(credsFile).toString('base64');
+                logger.info('New session data generated. Please update your SESSION_DATA env variable with this value:');
+                logger.info(sessionData);
+            }
+        } catch (error) {
+            logger.error('Failed to save credentials:', error);
         }
     });
 
@@ -145,7 +153,6 @@ async function startServer() {
 async function main() {
     try {
         await connectToDatabase();
-        await ensureSessionDir();
         await loadSessionData();
         await connectToWhatsApp();
         await startServer();
