@@ -4,15 +4,11 @@ const logger = require('./src/utils/logger');
 
 async function connectToDatabase() {
     try {
-        await mongoose.connect(config.mongodbUri, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 5000
-        });
+        await mongoose.connect(config.mongodb.uri, config.mongodb.options);
         logger.info('Connected to MongoDB');
     } catch (error) {
-        logger.error('Failed to connect to MongoDB:', error);
-        process.exit(1);
+        logger.error('MongoDB connection error:', error);
+        throw error;
     }
 }
 
@@ -21,7 +17,8 @@ async function disconnectFromDatabase() {
         await mongoose.disconnect();
         logger.info('Disconnected from MongoDB');
     } catch (error) {
-        logger.error('Error disconnecting from MongoDB:', error);
+        logger.error('MongoDB disconnection error:', error);
+        throw error;
     }
 }
 
