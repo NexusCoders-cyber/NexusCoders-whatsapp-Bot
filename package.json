@@ -22,8 +22,8 @@
     "express-rate-limit": "^6.7.0",
     "fs-extra": "^11.1.1",
     "helmet": "^7.0.0",
-    "jimp": "^0.22.10",
-    "libsignal": "^2.0.1",
+    "jimp": "0.16.13",
+    "libsignal": "git+https://github.com/adiwajshing/libsignal-node",
     "moment-timezone": "^0.5.43",
     "mongoose": "^7.3.0",
     "node-cache": "^5.1.2",
@@ -70,9 +70,7 @@
     "url": "https://github.com/NexusCoders-cyber/nexuscoders-whatsapp-bot/issues"
   },
   "homepage": "https://github.com/NexusCoders-cyber/nexuscoders-whatsapp-bot#readme",
-  "overrides": {
-    "@whiskeysockets/baileys": {
-      "libsignal": "^2.0.1"
-    }
+  "resolutions": {
+    "jimp": "0.16.13"
   }
 }
