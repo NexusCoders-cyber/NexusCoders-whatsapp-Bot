@@ -1,20 +1,17 @@
-const { handleCommand } = require('./commandHandler');
-const rateLimiter = require('./rateLimiter');
-const config = require('../config');
+const logger = require('../utils/logger');
 
 async function messageHandler(sock, msg) {
-    const content = msg.message?.conversation || msg.message?.extendedTextMessage?.text || '';
-    if (!content.startsWith(config.prefix)) return;
-
-    const [command, ...args] = content.slice(config.prefix.length).trim().split(/\s+/);
-    const senderId = msg.key.remoteJid;
-
-    if (rateLimiter.isRateLimited(senderId)) {
-        await sock.sendMessage(senderId, { text: 'You are sending commands too quickly. Please wait a moment and try again.' });
-        return;
+    try {
+        const messageType = Object.keys(msg.message)[0];
+        if (messageType === 'conversation' || messageType === 'extendedTextMessage') {
+            const text = msg.message.conversation || msg.message.extendedTextMessage.text;
+            if (text.startsWith('!ping')) {
+                await sock.sendMessage(msg.key.remoteJid, { text: 'Pong!' }, { quoted: msg });
+            }
+        }
+    } catch (error) {
+        logger.error('Error in message handler:', error);
     }
-
-    await handleCommand(sock, msg, command.toLowerCase(), args);
 }
 
 module.exports = messageHandler;
